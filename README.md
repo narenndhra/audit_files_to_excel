@@ -1,7 +1,7 @@
 # 🛡️ Nessus CIS Audit → Excel Toolkit
 
 > **Stop copy-pasting CIS benchmarks from PDFs.**  
-> Convert Nessus `.audit` files and HTML compliance reports into beautiful, structured Excel workbooks — in seconds.
+> Convert Nessus `.audit` files into beautiful, structured Excel workbooks — in seconds.
 
 ![Python](https://img.shields.io/badge/Python-3.8%2B-3776AB?style=flat-square&logo=python&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
@@ -14,11 +14,9 @@
 ## 📋 Table of Contents
 
 - [What This Toolkit Solves](#-what-this-toolkit-solves)
-- [Tools Overview](#-tools-overview)
 - [Real-World Workflow](#-real-world-workflow)
 - [Installation](#-installation)
-- [Tool 1 — Audit to Excel](#-tool-1--nessus-audit-file--excel)
-- [Tool 2 — HTML Report to Excel](#-tool-2--nessus-html-report--excel)
+- [Usage — Audit to Excel](#-usage--nessus-audit-file--excel)
 - [Excel Output Structure](#-excel-output-structure)
 - [Real-Life Use Cases](#-real-life-use-cases)
 - [Troubleshooting](#-troubleshooting)
@@ -41,15 +39,6 @@ Every security team doing **CIS hardening** knows the pain:
 | Observations lost in emails | Dedicated `Observation` column ready to fill |
 
 **Time saved per engagement: 4–8 hours of manual work → under 30 seconds.**
-
----
-
-## 🧰 Tools Overview
-
-| Script | Input | Purpose |
-|--------|-------|---------|
-| `nessus_audit_to_excel.py` | `.audit` file + optional Nessus CSV | **Manual** baseline template OR **Automatic** merged report with Pass/Fail |
-| `nessus_html_to_excel.py` | Nessus HTML compliance report(s) | Colour-coded Pass/Fail Excel from HTML scan exports |
 
 ---
 
@@ -110,28 +99,6 @@ Every security team doing **CIS hardening** knows the pain:
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Workflow C — HTML Report Beautification
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                   HTML REPORT WORKFLOW                              │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  1. Run Nessus compliance scan                                      │
-│           │                                                         │
-│           ▼                                                         │
-│  2. Export as HTML (Compliance) from Nessus                         │
-│           │                                                         │
-│           ▼                                                         │
-│  3. python nessus_html_to_excel.py scan_report.html                 │
-│           │                                                         │
-│           ▼                                                         │
-│  4. Excel with green/red/amber rows, summary tab,                   │
-│     remediation steps and affected hosts — client-ready             │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
 ---
 
 ## ⚙️ Installation
@@ -156,9 +123,8 @@ python3 --version    # macOS / Linux
 git clone https://github.com/your-org/nessus-cis-excel.git
 cd nessus-cis-excel
 
-# Option B: Download individual scripts with curl
+# Option B: Download the script with curl
 curl -O https://raw.githubusercontent.com/your-org/nessus-cis-excel/main/nessus_audit_to_excel.py
-curl -O https://raw.githubusercontent.com/your-org/nessus-cis-excel/main/nessus_html_to_excel.py
 ```
 
 ---
@@ -168,7 +134,7 @@ curl -O https://raw.githubusercontent.com/your-org/nessus-cis-excel/main/nessus_
 **Simple global install:**
 
 ```bash
-pip install openpyxl beautifulsoup4
+pip install openpyxl
 ```
 
 **Recommended — virtual environment (keeps your system Python clean):**
@@ -182,7 +148,7 @@ source venv/bin/activate        # macOS / Linux
 venv\Scripts\activate           # Windows PowerShell
 
 # Install dependencies
-pip install openpyxl beautifulsoup4
+pip install openpyxl
 
 # When finished, deactivate
 deactivate
@@ -198,14 +164,13 @@ pip install -r requirements.txt
 
 ```
 openpyxl>=3.1.0
-beautifulsoup4>=4.12.0
 ```
 
-> **Windows tip:** If `pip` is not recognised, use `python -m pip install openpyxl beautifulsoup4`
+> **Windows tip:** If `pip` is not recognised, use `python -m pip install openpyxl`
 
 ---
 
-## 🔧 Tool 1 — Nessus Audit File → Excel
+## 🔧 Usage — Nessus Audit File → Excel
 
 **Script:** `nessus_audit_to_excel.py`
 
@@ -325,49 +290,6 @@ Every CIS section is automatically routed to a named tab:
 | 17.1–17.9.x | `Audit - *` (8 tabs) | 1–6 each |
 | 18.1–18.10.x | `AT - *` (7 tabs) | 3–82 each |
 | 19.5 / 19.7.x | `User AT - IE / Win Comp` | 1–7 |
-
----
-
-## 🔧 Tool 2 — Nessus HTML Report → Excel
-
-**Script:** `nessus_html_to_excel.py`
-
-Parses Nessus HTML compliance scan reports and produces a colour-coded Excel workbook with Pass/Fail rows, remediation steps, and observed values — without any manual copy-paste.
-
-### How to Export HTML from Nessus
-
-```
-Nessus UI  →  My Scans  →  [Select scan]
-           →  Export  →  HTML (Compliance)  →  Download
-```
-
-### Usage
-
-```bash
-# Single report
-python nessus_html_to_excel.py compliance_report.html
-
-# Multiple reports → one Excel with one tab per report + a summary tab
-python nessus_html_to_excel.py scan1.html scan2.html scan3.html
-
-# Wildcard — all HTML files in the current directory
-python nessus_html_to_excel.py *.html
-
-# Custom output name
-python nessus_html_to_excel.py report.html final_report.xlsx
-```
-
-### Column Reference
-
-| Column | Source |
-|--------|--------|
-| S.NO | Auto-numbered |
-| Benchmark | Check title extracted from HTML |
-| Description | `Info` section from the HTML body |
-| Passed / Failed | Detected from HTML element background colour |
-| Remediation | `Solution` section (Impact text stripped automatically) |
-| Observed Value | Actual value extracted from `Hosts` section output |
-| Affected Host | Host IP from `Hosts` section |
 
 ---
 
@@ -491,21 +413,7 @@ python nessus_audit_to_excel.py \
 
 ---
 
-### 4. Pen Test Report Supplement — Client Deliverable
-
-A pen-test team needs to include a CIS compliance gap analysis alongside their findings. The client expects a formatted Excel attachment, not raw HTML.
-
-```bash
-python nessus_html_to_excel.py \
-  client_compliance_scan.html \
-  "Client_XYZ_CIS_Gap_Analysis_$(date +%Y%m%d).xlsx"
-```
-
-**Result:** Professional Excel with colour-coded rows. Summary tab shows pass %, total / passed / failed. Remediation column pulled automatically from Nessus solution text. Ready to attach to the pentest report — zero manual formatting.
-
----
-
-### 5. CI/CD Pipeline — Golden Image Compliance Gate
+### 4. CI/CD Pipeline — Golden Image Compliance Gate
 
 A DevSecOps team runs Nessus scans as part of their CI/CD pipeline for Windows golden images. Reports are generated automatically on every build.
 
@@ -529,7 +437,7 @@ echo "Compliance report saved as build artifact: $REPORT"
 
 ---
 
-### 6. Compliance Progress Tracking — Month Over Month
+### 5. Compliance Progress Tracking — Month Over Month
 
 A compliance team runs scans monthly and tracks hardening progress over time.
 
@@ -570,12 +478,6 @@ Present this trend to management or auditors as evidence of a maturing security 
 pip install openpyxl
 ```
 
-### `ModuleNotFoundError: No module named 'bs4'`
-
-```bash
-pip install beautifulsoup4
-```
-
 ### `python` is not recognised on Windows
 
 ```bash
@@ -601,11 +503,6 @@ py nessus_audit_to_excel.py --audit file.audit
 - Open the file in **Microsoft Excel** (not LibreOffice or Google Sheets, which may ignore pre-calculated row heights)
 - If still clipped: **Select All → Home → Format → AutoFit Row Height**
 
-### HTML script finds 0 checks
-
-- Export from Nessus as **HTML (Compliance)** not the default summary HTML
-- Open the file in a browser — it must contain colour-coded check title bars, not just a plain table
-
 ---
 
 ## 📁 Repository Structure
@@ -613,7 +510,6 @@ py nessus_audit_to_excel.py --audit file.audit
 ```
 nessus-cis-excel/
 ├── nessus_audit_to_excel.py   ← Audit + CSV converter (Manual & Automatic modes)
-├── nessus_html_to_excel.py    ← HTML compliance report converter
 ├── requirements.txt           ← Python dependencies
 └── README.md                  ← This file
 ```
@@ -622,15 +518,13 @@ nessus-cis-excel/
 
 ## 📦 Requirements
 
-| Dependency | Minimum Version | Used By | Purpose |
-|------------|----------------|---------|---------|
-| Python | 3.8+ | Both scripts | Runtime |
-| `openpyxl` | 3.1.0+ | Both scripts | Excel file creation and formatting |
-| `beautifulsoup4` | 4.12.0+ | HTML script only | HTML parsing |
+| Dependency | Minimum Version | Purpose |
+|------------|----------------|---------|
+| Python | 3.8+ | Runtime |
+| `openpyxl` | 3.1.0+ | Excel file creation and formatting |
 
 ```bash
-# Install everything at once
-pip install openpyxl beautifulsoup4
+pip install openpyxl
 ```
 
 ---
@@ -645,11 +539,6 @@ pip install openpyxl beautifulsoup4
 **How to export Nessus CSV:**
 ```
 Nessus → My Scans → [Your compliance scan] → Export → CSV → Download
-```
-
-**How to export Nessus HTML:**
-```
-Nessus → My Scans → [Your compliance scan] → Export → HTML (Compliance) → Download
 ```
 
 **Running L1 and L2 together:**
@@ -668,13 +557,3 @@ python nessus_audit_to_excel.py \
 MIT — free to use, modify, and distribute in personal and commercial projects.
 
 ---
-
-## 🤝 Contributing
-
-Pull requests are welcome. Before submitting please:
-
-1. Test `nessus_audit_to_excel.py` against a real Nessus `.audit` file and verify check counts
-2. Test Automatic mode with a real Nessus compliance CSV export
-3. Test `nessus_html_to_excel.py` against a real Nessus HTML compliance export
-4. Verify the Excel output opens correctly in Microsoft Excel
-5. Confirm all row heights display content without clipping
