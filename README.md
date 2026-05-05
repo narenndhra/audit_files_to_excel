@@ -1,102 +1,92 @@
-# 🛡️ Nessus CIS Audit → Excel Toolkit
+# 🛡️ Nessus CIS Compliance Toolkit
 
-> **Stop copy-pasting CIS benchmarks from PDFs.**  
-> Convert Nessus `.audit` files into beautiful, structured Excel workbooks — in seconds.
+> **Two-phase approach: generate a clean audit template, then auto-fill it from Nessus scan results.**  
+> Works with CIS Benchmarks, DISA STIGs, and any Nessus `.audit` format.
 
 ![Python](https://img.shields.io/badge/Python-3.8%2B-3776AB?style=flat-square&logo=python&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 ![Excel](https://img.shields.io/badge/Output-Excel%20.xlsx-217346?style=flat-square&logo=microsoft-excel&logoColor=white)
 ![CIS](https://img.shields.io/badge/Standard-CIS%20Benchmarks-red?style=flat-square)
+![DISA](https://img.shields.io/badge/Standard-DISA%20STIG-blue?style=flat-square)
 ![Nessus](https://img.shields.io/badge/Tool-Nessus%20%2F%20Tenable-00B388?style=flat-square)
 
 ---
 
 ## 📋 Table of Contents
 
+- [Why Two Scripts](#-why-two-scripts)
 - [What This Toolkit Solves](#-what-this-toolkit-solves)
-- [Real-World Workflow](#-real-world-workflow)
+- [How It Works](#-how-it-works)
 - [Installation](#-installation)
-- [Usage — Audit to Excel](#-usage--nessus-audit-file--excel)
-- [Excel Output Structure](#-excel-output-structure)
+- [Phase 1 — audit\_template.py](#-phase-1--audit_templatepy)
+- [Phase 2 — report\_generator.py](#-phase-2--report_generatorpy)
+- [Column Reference](#-column-reference)
 - [Real-Life Use Cases](#-real-life-use-cases)
 - [Troubleshooting](#-troubleshooting)
 - [Requirements](#-requirements)
 
 ---
 
-## 🔥 What This Toolkit Solves
+## 🔀 Why Two Scripts
 
-Every security team doing **CIS hardening** knows the pain:
+Most compliance tools try to do everything in one command. This toolkit deliberately separates two concerns that have different timing, ownership, and data sources:
 
-| The Old Way 😩 | With This Toolkit ✅ |
-|---|---|
-| Open CIS benchmark PDF | Run one command |
-| Copy benchmark title manually | Extracted automatically from `.audit` file |
-| Copy 500-word description | Pulled directly from Nessus audit definitions |
-| Type Pass/Fail from scan output | Auto-populated from Nessus CSV export |
-| Format Excel manually for hours | Professional Excel generated in seconds |
-| One section at a time | All 339+ checks at once across 24 category tabs |
-| Observations lost in emails | Dedicated `Observation` column ready to fill |
+| | `audit_template.py` | `report_generator.py` |
+|---|---|---|
+| **When** | Before scanning | After scanning |
+| **Input** | `.audit` file(s) | `.audit` file(s) + Nessus CSV export(s) |
+| **Output** | Blank Excel template | Filled Excel report |
+| **Status column** | Empty | PASSED / FAILED / WARNING |
+| **Observed Value column** | Empty | Actual system value from scan |
+| **Default Value column** | From `.audit` file | From `.audit` file |
+| **Use for** | Manual assessments, client templates | Automated scan reporting |
 
-**Time saved per engagement: 4–8 hours of manual work → under 30 seconds.**
+The `.audit` file is the **single source of truth** for benchmark content — descriptions, recommendations, and expected values always come from it, never from the CSV. The CSV contributes only two things: **Status** and **Observed Value**.
 
 ---
 
-## 🔄 Real-World Workflow
+## 🔥 What This Toolkit Solves
 
-### Workflow A — Automated Compliance Reporting
+Every security team doing CIS hardening or DISA STIG compliance knows the pain:
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    AUTOMATED WORKFLOW                               │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  1. Download CIS .audit file from Tenable / CIS WorkBench          │
-│           │                                                         │
-│           ▼                                                         │
-│  2. Run Nessus compliance policy scan against target host(s)        │
-│           │                                                         │
-│           ▼                                                         │
-│  3. Export scan results as CSV from Nessus                          │
-│           │                                                         │
-│           ▼                                                         │
-│  4. python nessus_audit_to_excel.py                                 │
-│       --audit CIS_WS2025_L1.audit                                   │
-│       --csv   nessus_scan_results.csv                               │
-│       --output CIS_Report.xlsx                                      │
-│           │                                                         │
-│           ▼                                                         │
-│  5. Open Excel — all 339 checks, colour-coded, observed values      │
-│     auto-filled, ready to review and share                          │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-```
+| The Old Way 😩 | With This Toolkit ✅ |
+|---|---|
+| Copy-paste benchmarks from PDF | Extracted automatically from `.audit` file |
+| Manually type 226+ check descriptions | Generated in seconds |
+| Status and findings in a separate spreadsheet | Auto-merged into one coloured Excel |
+| One section at a time | All checks at once, sorted by benchmark ID |
+| `N/A` everywhere when data is missing | Clean blank cells — never fake data |
+| Rebuild the template for every engagement | Generate once per audit file, reuse always |
 
-### Workflow B — Manual Assessment Template
+**Time saved per engagement: 4–8 hours of manual formatting → under 30 seconds.**
+
+---
+
+## 🔄 How It Works
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                     MANUAL WORKFLOW                                 │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  1. Download CIS .audit file                                        │
-│           │                                                         │
-│           ▼                                                         │
-│  2. python nessus_audit_to_excel.py --audit CIS_WS2025_L1.audit    │
-│           │                                                         │
-│           ▼                                                         │
-│  3. Share Excel template with assessment team                       │
-│           │                                                         │
-│           ▼                                                         │
-│  4. Team fills in:                                                  │
-│     • Status         (Pass / Fail)                                  │
-│     • Observed Value (what they actually found on the system)       │
-│     • Observation    (notes, context, exceptions, evidence)         │
-│           │                                                         │
-│           ▼                                                         │
-│  5. Complete hardening report ready for delivery                    │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                        TWO-PHASE WORKFLOW                            │
+├──────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  PHASE 1 — Template                     PHASE 2 — Report            │
+│  ─────────────────                      ─────────────────           │
+│                                                                      │
+│  .audit file                            .audit file                 │
+│       │                                      │                      │
+│       ▼                                      ▼                      │
+│  audit_template.py          +     report_generator.py               │
+│       │                            +         │                      │
+│       │                       Nessus CSV     │                      │
+│       ▼                            │         ▼                      │
+│  template.xlsx                     └──► report.xlsx                 │
+│  (blank Status &                        (filled Status &            │
+│   Observed Value)                        Observed Value)            │
+│                                                                      │
+│  ← Share with team for        ← Attach to management report         │
+│    manual assessment            or client delivery                  │
+│                                                                      │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -107,366 +97,317 @@ Every security team doing **CIS hardening** knows the pain:
 
 - **Python 3.8 or higher** → [Download from python.org](https://www.python.org/downloads/)
 
-Verify your install:
+Verify:
 
 ```bash
-python --version     # Windows
-python3 --version    # macOS / Linux
+python --version      # Windows
+python3 --version     # macOS / Linux
 ```
-
----
 
 ### Step 2 — Get the Scripts
 
 ```bash
-# Option A: Clone the repository
+# Clone
 git clone https://github.com/your-org/nessus-cis-excel.git
 cd nessus-cis-excel
 
-# Option B: Download the script with curl
-curl -O https://raw.githubusercontent.com/your-org/nessus-cis-excel/main/nessus_audit_to_excel.py
+# Or download individually
+curl -O https://raw.githubusercontent.com/your-org/nessus-cis-excel/main/audit_template.py
+curl -O https://raw.githubusercontent.com/your-org/nessus-cis-excel/main/report_generator.py
 ```
-
----
 
 ### Step 3 — Install Dependencies
 
-**Simple global install:**
-
 ```bash
 pip install openpyxl
 ```
 
-**Recommended — virtual environment (keeps your system Python clean):**
+**Virtual environment (recommended):**
 
 ```bash
-# Create the environment
 python -m venv venv
-
-# Activate it
 source venv/bin/activate        # macOS / Linux
-venv\Scripts\activate           # Windows PowerShell
+venv\Scripts\activate           # Windows
 
-# Install dependencies
 pip install openpyxl
-
-# When finished, deactivate
-deactivate
-```
-
-**Install from requirements file:**
-
-```bash
-pip install -r requirements.txt
 ```
 
 `requirements.txt`:
-
 ```
 openpyxl>=3.1.0
 ```
 
-> **Windows tip:** If `pip` is not recognised, use `python -m pip install openpyxl`
+> **Windows tip:** If `pip` is not found, use `python -m pip install openpyxl`
 
 ---
 
-## 🔧 Usage — Nessus Audit File → Excel
+## 📄 Phase 1 — `audit_template.py`
 
-**Script:** `nessus_audit_to_excel.py`
+Reads one or more Nessus `.audit` files and produces a **blank Excel template**.  
+Status and Observed Value are empty — ready for manual assessment or to be filled by Phase 2.
 
-Parses Nessus `.audit` files — the CIS benchmark definition files published by Tenable — and produces a structured, multi-tab Excel workbook. Operates in two modes depending on whether you supply a Nessus CSV export.
+### Supported Audit Formats
 
----
+- CIS Benchmarks — Windows, Linux, macOS, Microsoft 365, and more
+- DISA STIGs — Oracle Database, Windows Server, RHEL, and more
+- Any Nessus `.audit` file containing `<custom_item>` or `<report>` blocks
 
-### Mode A — Manual (no CSV)
-
-Generates a clean assessment template with all benchmark text pre-filled. The **Status** and **Observed Value** columns are left blank for your team to complete during the manual check.
+### Usage
 
 ```bash
-# Single L1 audit file
-python nessus_audit_to_excel.py --audit CIS_Windows_Server_2025_L1.audit
+# Single audit file
+python audit_template.py --audit CIS_L1.audit
 
-# L1 and L2 combined into one workbook
-python nessus_audit_to_excel.py \
-  --audit CIS_WS2025_L1.audit CIS_WS2025_L2.audit
+# L1 + L2 combined
+python audit_template.py --audit L1.audit L2.audit
 
 # Custom output filename
-python nessus_audit_to_excel.py \
-  --audit CIS_WS2025_L1.audit \
-  --output "Client_ABC_Assessment_2025.xlsx"
+python audit_template.py --audit CIS_L1.audit -o ClientABC_Template.xlsx
+
+# DISA STIG
+python audit_template.py --audit DISA_Oracle_19c.audit -o oracle_stig_template.xlsx
 ```
+
+### Output
+
+```
+audit_template.xlsx
+├── Summary              ← Benchmark name + total check count
+└── <Benchmark Name>     ← All checks in benchmark order
+```
+
+Every data row has:
+
+| Column | Content |
+|--------|---------|
+| S.NO | Auto-numbered |
+| Benchmark | Check ID + title from `.audit` description field |
+| Description | Rationale / info from `.audit` info field |
+| Status | **Empty** — fill manually or use report_generator.py |
+| Default Value | Expected value from `.audit` value_data (blank if not in audit file) |
+| Observed Value | **Empty** — fill manually or use report_generator.py |
+| Recommendation | Remediation steps from `.audit` solution field |
+
+### What "Default Value" means here
+
+Default Value is extracted from the `.audit` file's `value_data` field and converted to human-readable form:
+
+| Raw audit value | What appears in Excel |
+|---|---|
+| `@PASSWORD_HISTORY@` | `24 or more passwords` |
+| `@MINIMUM_PASSWORD_LENGTH@` | `14 or more characters` |
+| `[1..MAX]` | `1 or more` |
+| `[15..999]` | `15 to 999` |
+| *(not present in audit file)* | *(blank — never N/A)* |
+
+If the audit file has no expected value for a check (common for script-based Linux/Oracle checks), the cell is left **blank**. The toolkit never writes `N/A` or placeholder text.
 
 ---
 
-### Mode B — Automatic (audit + Nessus CSV)
+## 📊 Phase 2 — `report_generator.py`
 
-After running a Nessus compliance policy scan, export the results as CSV and provide it alongside the audit file. The script merges both sources — **Status** and **Observed Value** are populated automatically, and rows are colour-coded green/red.
-
-```bash
-# Single host
-python nessus_audit_to_excel.py \
-  --audit CIS_WS2025_L1.audit \
-  --csv   nessus_export.csv \
-  --output CIS_Report_AutoFilled.xlsx
-
-# Multiple hosts — worst-case status per check, all observed values shown
-python nessus_audit_to_excel.py \
-  --audit CIS_WS2025_L1.audit \
-  --csv   dc01.csv dc02.csv web01.csv \
-  --output CIS_AllHosts_Report.xlsx
-
-# L1 + L2 with scan results
-python nessus_audit_to_excel.py \
-  --audit CIS_WS2025_L1.audit CIS_WS2025_L2.audit \
-  --csv   scan_results.csv \
-  --output CIS_Full_L1_L2.xlsx
-```
-
----
+Takes a Nessus `.audit` file plus one or more Nessus compliance **CSV exports** and produces a filled, colour-coded Excel report.
 
 ### How to Export CSV from Nessus
 
 ```
-Nessus UI  →  My Scans  →  [Select your compliance scan]
-           →  Export  →  CSV  →  Download
+Nessus  →  My Scans  →  [Select your compliance scan]
+        →  Export  →  CSV  →  Download
 ```
 
-The script automatically detects column name variants across Nessus versions:
+> **Important:** Export as a plain **CSV**, not as HTML or `.nessus`. The report generator handles both Nessus compliance CSV formats:
+> - **Compliance scan CSV** — `Name` column contains the check name directly
+> - **Vulnerability scan CSV** — `Name` = `"Unix Compliance Checks"` (generic); check name and observed value are embedded in the `Description` field
 
-| Data Point | Recognised Column Names |
-|---|---|
-| Check name | `Name`, `Plugin Name`, `Check Name` |
-| Pass / Fail | `Risk`, `Status`, `Result` |
-| Actual value | `Plugin Output`, `Output`, `Actual Value` |
-| Host IP | `Host`, `IP Address` |
+Both formats are detected and parsed automatically.
 
----
+### Usage
 
-### Multi-Host Aggregation
+```bash
+# Single host scan
+python report_generator.py --audit CIS_L1.audit --csv scan.csv
 
-When multiple hosts scan the same control, the script applies **worst-case aggregation**:
+# Multiple CSV files — one tab per host
+python report_generator.py --audit CIS_L1.audit --csv host1.csv host2.csv host3.csv
 
-```
-Host A  →  1.1.1  →  PASSED   (Actual: 24)
-Host B  →  1.1.1  →  FAILED   (Actual: 0)
-Host C  →  1.1.1  →  PASSED   (Actual: 24)
-─────────────────────────────────────────
-Result  →  FAILED             ← any failure = overall FAILED
-Observed Value  →  "24 / 0"  ← all unique values listed
-```
+# Folder of CSVs — one tab per host, auto-detected
+python report_generator.py --audit CIS_L1.audit --csv ./scan_results/
 
-This ensures no failing host is hidden by averaging — if one host is non-compliant, the control shows as FAILED so it gets remediated on all hosts.
+# Multiple audit files (L1 + L2)
+python report_generator.py --audit L1.audit L2.audit --csv scan.csv
 
----
-
-### Column Reference
-
-| Column | Manual Mode | Automatic Mode |
-|--------|-------------|----------------|
-| S.NO | Auto-numbered | Auto-numbered |
-| Benchmark | From `.audit` description field | From `.audit` description field |
-| Description | From `.audit` info / rationale | From `.audit` info / rationale |
-| **Status** | **Blank** — fill manually | **PASSED / FAILED** — from CSV |
-| Default Value | From `.audit` value_data | From `.audit` value_data |
-| **Observed Value** | **Blank** — fill manually | **Actual system value** — from CSV |
-| Observation | Blank — team notes / evidence | Blank — team notes / evidence |
-| Recommendation | From `.audit` solution field | From `.audit` solution field |
-
----
-
-### Supported CIS Sections → Excel Tabs
-
-Every CIS section is automatically routed to a named tab:
-
-| CIS Section | Tab Name | Typical Check Count |
-|-------------|----------|---------------------|
-| 1.1.x | `Password Policy` | 7 |
-| 1.2.x | `Account Lockout` | 4 |
-| 2.2.x | `User Rights` | 37 |
-| 2.3.x | `Security Options` | 64 |
-| 9.1.x | `Firewall - Domain` | 7 |
-| 9.2.x | `Firewall - Private` | 7 |
-| 9.3.x | `Firewall - Public` | 9 |
-| 17.1–17.9.x | `Audit - *` (8 tabs) | 1–6 each |
-| 18.1–18.10.x | `AT - *` (7 tabs) | 3–82 each |
-| 19.5 / 19.7.x | `User AT - IE / Win Comp` | 1–7 |
-
----
-
-## 📊 Excel Output Structure
-
-### `nessus_audit_to_excel.py` workbook layout
-
-```
-CIS_Report.xlsx
-│
-├── 📋 Summary                    ← Total / Passed / Failed / Not Evaluated counts
-│                                    Per-category breakdown with pass/fail per section
-│
-├── 🔐 Password Policy            ←  1.1.x   (7 checks)
-├── 🔒 Account Lockout            ←  1.2.x   (4 checks)
-├── 👤 User Rights                ←  2.2.x  (37 checks)
-├── ⚙️  Security Options           ←  2.3.x  (64 checks)
-├── 🔥 Firewall - Domain          ←  9.1.x   (7 checks)
-├── 🔥 Firewall - Private         ←  9.2.x   (7 checks)
-├── 🔥 Firewall - Public          ←  9.3.x   (9 checks)
-├── 📝 Audit - Acct Logon         ← 17.1.x
-├── 📝 Audit - Acct Mgmt          ← 17.2.x
-├── 📝 Audit - Logon-Logoff       ← 17.5.x
-├── 📝 Audit - Object Access      ← 17.6.x
-├── 📝 Audit - Policy Change      ← 17.7.x
-├── 📝 Audit - System             ← 17.9.x
-├── 🖥️  AT - Control Panel         ← 18.1.x
-├── 🌐 AT - Network               ← 18.5.x
-├── 🖨️  AT - Printers              ← 18.6.x
-├── ⚙️  AT - System                ← 18.9.x
-└── 🪟 AT - Windows Comp          ← 18.10.x (82 checks)
+# Custom output filename
+python report_generator.py --audit CIS_L1.audit --csv scan.csv -o Report_$(date +%Y%m%d).xlsx
 ```
 
-### Row colour coding (Automatic mode only)
+### Output — Single CSV
+
+```
+report.xlsx
+├── Summary              ← Total / Passed / Failed / Warning / Not Evaluated
+└── 192.168.1.10         ← Results for the scanned host (tab named by IP)
+```
+
+### Output — Multiple CSVs / Folder
+
+```
+report.xlsx
+├── Summary              ← Per-host breakdown table
+├── 192.168.1.10         ← Host 1 results (🔴 red tab = failures exist)
+├── 192.168.1.11         ← Host 2 results (🟢 green tab = all passed)
+└── 192.168.1.12         ← Host 3 results (🟠 orange tab = warnings only)
+```
+
+No Consolidated sheet — each host has its own tab. The Summary tab gives the cross-host overview.
+
+### Row Colour Coding
 
 | Row Colour | Status | Meaning |
 |-----------|--------|---------|
-| 🟢 Light green | `PASSED` | Control is compliant on all scanned hosts |
-| 🔴 Light red | `FAILED` | Control needs remediation on one or more hosts |
-| 🟡 Light amber | `WARNING` | Partially compliant or informational finding |
-| ⬜ White / grey | *(blank)* | Not evaluated — manual check required |
+| 🟢 Light green | `PASSED` | Control is compliant |
+| 🔴 Light red | `FAILED` | Control needs remediation |
+| 🟡 Light amber | `WARNING` | Informational / partially compliant |
+| ⬜ White / grey | *(blank)* | Check not in scan results |
 
-### Tab colour coding (Automatic mode only)
+### Tab Colour Coding
 
 | Tab Colour | Meaning |
 |-----------|---------|
-| 🔴 Red tab | One or more FAILED checks exist in this category |
-| 🟠 Orange tab | Warnings present, no failures |
-| 🟢 Green tab | All evaluated controls in this category passed |
+| 🔴 Red | One or more FAILED checks in this host's results |
+| 🟠 Orange | Warnings present, no failures |
+| 🟢 Green | All evaluated controls passed |
 
-### Summary tab (Automatic mode)
+### Multi-Host Status Logic
 
-The Summary tab shows an at-a-glance dashboard:
+When the same check is reported by multiple hosts (e.g., from a folder of CSVs for the same host scanned twice), the script applies **worst-case** per-tab:
 
 ```
-┌──────────────────────────────────────────────┐
-│  CIS Windows Server 2025 – Hardening Report  │
-│  Benchmark v1.0.0  •  L1 MS  •  Auto Mode   │
-├────────────────────┬─────────────────────────┤
-│  Total Checks      │  339                    │
-│  ✔ Passed          │   52  (green)           │
-│  ✘ Failed          │   87  (red)             │
-│  ⚠ Warning         │    3  (amber)           │
-│  — Not Evaluated   │  197                    │
-├────────────────────┼──────────┬──────┬───────┤
-│  Category          │  Checks  │  ✔   │  ✘   │
-├────────────────────┼──────────┼──────┼───────┤
-│  1.1 Password Pol. │    7     │  4   │  3    │
-│  1.2 Acct Lockout  │    4     │  1   │  1    │
-│  2.3 Security Opt. │   64     │ 18   │ 22    │
-│  ...               │  ...     │ ...  │ ...   │
-└────────────────────┴──────────┴──────┴───────┘
+Scan A  →  1.1.1  →  PASSED
+Scan B  →  1.1.1  →  FAILED
+─────────────────────────────
+Tab result  →  FAILED   ← any failure wins
 ```
+
+---
+
+## 📐 Column Reference
+
+Both scripts produce the same 7-column layout:
+
+| # | Column | Template | Report | Source |
+|---|--------|----------|--------|--------|
+| 1 | S.NO | Auto | Auto | — |
+| 2 | Benchmark | ✅ Filled | ✅ Filled | `.audit` description |
+| 3 | Description | ✅ Filled | ✅ Filled | `.audit` info field |
+| 4 | **Status** | **Empty** | **✅ Filled** | CSV `Risk` column |
+| 5 | Default Value | ✅ or blank | ✅ or blank | `.audit` value_data only |
+| 6 | **Observed Value** | **Empty** | **✅ Filled** | CSV `Actual Value` section |
+| 7 | Recommendation | ✅ Filled | ✅ Filled | `.audit` solution field |
+
+**Key design principles:**
+
+- Default Value **always** comes from the `.audit` file — never from the CSV
+- Status and Observed Value **always** come from the CSV — never from the `.audit` file
+- When data is not available, the cell is **left blank** — `N/A` is never written
 
 ---
 
 ## 🌍 Real-Life Use Cases
 
-### 1. Pre-Audit Baseline Assessment
+### 1. Manual Security Assessment — Client Engagement
 
-A security consultant is engaged to harden 15 Windows Server 2025 hosts before an ISO 27001 audit.
+A consultant needs a professional assessment template before their first client meeting. No scan has been run yet.
 
 ```bash
-python nessus_audit_to_excel.py \
-  --audit CIS_Microsoft_Windows_Server_2025_v1_0_0_L1_MS.audit \
-  --output "Client_ABC_Baseline_Assessment.xlsx"
+python audit_template.py \
+  --audit CIS_AlmaLinux_OS_9_v2_0_0_L1_Server.audit \
+  -o "ClientABC_CIS_AlmaLinux_Assessment.xlsx"
 ```
 
-**Result:** 339-check Excel template distributed to the client team in 10 seconds. Each CIS section is a separate tab. Team fills Status and Observations manually. No PDF copy-paste. No formatting work. The consultant looks professional before the first meeting.
+**Result:** 226-check Excel template with all benchmark text pre-filled. Consultant distributes it to the client team. Each engineer checks their assigned servers and fills in Status and Observed Value. No copy-paste from any PDF.
 
 ---
 
-### 2. Weekly Automated Compliance Reporting
+### 2. Automated Weekly Compliance Report — Single Server
 
-A system administrator runs a weekly Nessus compliance scan and sends a report to management every Monday.
+A sysadmin runs a Nessus compliance scan every Monday and needs a coloured report ready before the 9am standup.
 
 ```bash
-python nessus_audit_to_excel.py \
-  --audit CIS_WS2025_L1.audit \
+python report_generator.py \
+  --audit CIS_AlmaLinux_OS_9_v2_0_0_L1_Server.audit \
   --csv   weekly_scan_$(date +%Y%m%d).csv \
-  --output "Weekly_CIS_Report_$(date +%Y%m%d).xlsx"
+  -o "Weekly_Report_$(date +%Y%m%d).xlsx"
 ```
 
-**Result:** Full colour-coded Excel — green = compliant, red = action needed. Management gets a clear picture. Security team gets exact observed values to remediate. Total time: under 60 seconds including the Nessus CSV export.
+**Result:** Colour-coded report in under 30 seconds. 177 green rows, 40 red rows. Paste it into the Monday email and done.
 
 ---
 
-### 3. Datacenter Hardening — 20 Servers
+### 3. Multi-Server Scan — 20 Linux Hosts
 
-An enterprise IT team is hardening a datacenter. They scan all servers and need a consolidated report showing which controls fail on any host.
+An enterprise team scans a fleet of servers and needs individual host results without a consolidated view that hides per-host issues.
 
 ```bash
-python nessus_audit_to_excel.py \
-  --audit CIS_WS2025_L1.audit CIS_WS2025_L2.audit \
-  --csv   dc01.csv dc02.csv dc03.csv \
-          web01.csv web02.csv app01.csv \
-  --output "Datacenter_CIS_L1L2_Full_Report.xlsx"
+# All CSVs exported into one folder
+python report_generator.py \
+  --audit CIS_AlmaLinux_OS_9_v2_0_0_L1_Server.audit \
+  --csv   ./scan_exports/ \
+  -o "Fleet_Compliance_$(date +%Y%m%d).xlsx"
 ```
 
-**Result:** One Excel with 25 tabs. Every check shows worst-case status across all hosts. The Observed Value column shows all unique values (e.g. `24 / 0 / 0`). Red tab colours instantly highlight problem categories. Summary tab shows per-category breakdown. Entire report ready in under 2 minutes.
+**Result:** One Excel workbook with one tab per server (named by IP). Summary tab shows each server's pass/fail count at a glance. Red tabs immediately identify servers that need attention.
 
 ---
 
-### 4. CI/CD Pipeline — Golden Image Compliance Gate
+### 4. DISA STIG Oracle Database Audit
 
-A DevSecOps team runs Nessus scans as part of their CI/CD pipeline for Windows golden images. Reports are generated automatically on every build.
+A DBA team needs to assess Oracle 19c compliance against DISA STIG requirements. No scan exists yet — this is a manual walkthrough.
+
+```bash
+python audit_template.py \
+  --audit DISA_STIG_Oracle_Database_19c_v1r5_Unix.audit \
+  -o "Oracle19c_STIG_Assessment.xlsx"
+```
+
+**Result:** All 16 STIG controls pre-populated with STIG IDs (e.g., `O19C-00-000200`), full rationale, and remediation steps. DBA team checks each control during the audit walkthrough.
+
+---
+
+### 5. Mixed L1 + L2 Benchmark Coverage
+
+A compliance manager needs a full L1 and L2 CIS benchmark report for an external audit.
+
+```bash
+# Template covering both levels
+python audit_template.py \
+  --audit CIS_L1.audit CIS_L2.audit \
+  -o full_benchmark_template.xlsx
+
+# Report after scanning
+python report_generator.py \
+  --audit CIS_L1.audit CIS_L2.audit \
+  --csv   full_scan.csv \
+  -o full_benchmark_report.xlsx
+```
+
+**Result:** Checks from both L1 and L2 are deduplicated, merged, and sorted by benchmark number into a single sheet.
+
+---
+
+### 6. CI/CD Pipeline — Compliance Gate
+
+A DevSecOps team gates image builds on CIS compliance. If too many controls fail, the build is blocked.
 
 ```bash
 #!/bin/bash
-# pipeline_compliance_check.sh
+python report_generator.py \
+  --audit CIS_L1.audit \
+  --csv   nessus_scan_${BUILD_ID}.csv \
+  -o artifacts/compliance_${BUILD_ID}.xlsx
 
-AUDIT_FILE="CIS_WS2025_L1.audit"
-SCAN_CSV="nessus_results_${BUILD_NUMBER}.csv"
-REPORT="artifacts/CIS_Report_Build_${BUILD_NUMBER}.xlsx"
-
-python nessus_audit_to_excel.py \
-  --audit "$AUDIT_FILE" \
-  --csv   "$SCAN_CSV" \
-  --output "$REPORT"
-
-echo "Compliance report saved as build artifact: $REPORT"
+# Count failures (extend the script or use python -c for threshold check)
+echo "Compliance report saved as build artifact"
 ```
-
-**Result:** Every build produces a compliance Excel as an artifact. Developers and security leads can review it directly. Extend the script to fail the build if FAILED count exceeds an acceptable threshold — making CIS compliance part of the release gate.
-
----
-
-### 5. Compliance Progress Tracking — Month Over Month
-
-A compliance team runs scans monthly and tracks hardening progress over time.
-
-```bash
-# January
-python nessus_audit_to_excel.py \
-  --audit CIS_WS2025_L1.audit --csv jan_scan.csv \
-  --output Reports/CIS_2025_01.xlsx
-
-# February — after first remediation sprint
-python nessus_audit_to_excel.py \
-  --audit CIS_WS2025_L1.audit --csv feb_scan.csv \
-  --output Reports/CIS_2025_02.xlsx
-
-# March — after second remediation sprint
-python nessus_audit_to_excel.py \
-  --audit CIS_WS2025_L1.audit --csv mar_scan.csv \
-  --output Reports/CIS_2025_03.xlsx
-```
-
-**Result:** Three comparable Excel files showing measurable improvement:
-
-```
-January  → 87 FAILED  |  52 PASSED  |  200 Not Evaluated
-February → 52 FAILED  |  87 PASSED  |  200 Not Evaluated
-March    → 19 FAILED  | 120 PASSED  |  200 Not Evaluated
-```
-
-Present this trend to management or auditors as evidence of a maturing security posture.
 
 ---
 
@@ -481,27 +422,33 @@ pip install openpyxl
 ### `python` is not recognised on Windows
 
 ```bash
-python3 nessus_audit_to_excel.py --audit file.audit
+python3 audit_template.py --audit file.audit
 # or
-py nessus_audit_to_excel.py --audit file.audit
+py audit_template.py --audit file.audit
 ```
 
-### Script runs but extracts 0 checks from `.audit` file
+### `0 checks found` from `.audit` file
 
-- Confirm the file is a **Nessus `.audit`** benchmark definition file, not an `.nessus` scan result
-- The file must contain `<custom_item>` blocks
-- Benchmark descriptions must start with a CIS number like `1.1.1 (L1) Ensure...`
+- Confirm it is a **Nessus `.audit`** benchmark definition file — not a `.nessus` scan result
+- The file must contain `<custom_item>` or `<report>` blocks
+- Check descriptions must start with a benchmark ID:
+  - CIS: `1.1.1 (L1) Ensure...`
+  - DISA STIG: `O19C-00-000200 - Oracle Database must...`
 
-### CSV matched 0 / very few checks
+### CSV matched `0 / N` checks
 
-- Ensure the CSV was exported from a **Compliance** scan, not a Vulnerability scan
-- Open the CSV in a text editor and confirm the `Name` column contains CIS benchmark names starting with numbers like `1.1.1 (L1) Ensure...`
-- Verify accepted column names: `Name`, `Plugin Name`, `Risk`, `Status`, `Plugin Output`
+- The CSV must be exported from a **Compliance scan**, not a Vulnerability scan
+- Open the CSV and check: either the `Name` column has check names starting with numbers, **or** the `Description` column contains lines like `"1.1.1 Ensure ..." : [PASSED]`
+- Both formats are auto-detected — if neither is present, it's not a compliance export
 
 ### Row text still clipped in Excel
 
-- Open the file in **Microsoft Excel** (not LibreOffice or Google Sheets, which may ignore pre-calculated row heights)
-- If still clipped: **Select All → Home → Format → AutoFit Row Height**
+- Open in **Microsoft Excel** (not LibreOffice or Google Sheets — both may ignore pre-calculated row heights)
+- Manual fix: **Ctrl+A → Home → Format → AutoFit Row Height**
+
+### Default Value shows blank for all checks
+
+This is expected for script-based audit formats such as CIS Linux and DISA STIG Oracle. These checks use multi-line scripts rather than a simple expected value, so no `value_data` is stored in the `.audit` file. Blank is correct — not a bug.
 
 ---
 
@@ -509,17 +456,18 @@ py nessus_audit_to_excel.py --audit file.audit
 
 ```
 nessus-cis-excel/
-├── nessus_audit_to_excel.py   ← Audit + CSV converter (Manual & Automatic modes)
-├── requirements.txt           ← Python dependencies
-└── README.md                  ← This file
+├── audit_template.py      ← Phase 1: blank Excel template from .audit file
+├── report_generator.py    ← Phase 2: filled Excel report from .audit + CSV
+├── requirements.txt       ← Python dependencies
+└── README.md              ← This file
 ```
 
 ---
 
 ## 📦 Requirements
 
-| Dependency | Minimum Version | Purpose |
-|------------|----------------|---------|
+| Dependency | Version | Purpose |
+|------------|---------|---------|
 | Python | 3.8+ | Runtime |
 | `openpyxl` | 3.1.0+ | Excel file creation and formatting |
 
@@ -527,27 +475,33 @@ nessus-cis-excel/
 pip install openpyxl
 ```
 
+No other dependencies. `beautifulsoup4` is **not required** — use CSV exports, not HTML.
+
 ---
 
-## 💡 Tips & Reference
+## 💡 Quick Reference
 
-**Where to get the `.audit` file:**
-- [Tenable Downloads](https://www.tenable.com/downloads/audit-files) — requires a Tenable account
-- [CIS WorkBench](https://workbench.cisecurity.org) — requires CIS membership
-- Filename example: `CIS_Microsoft_Windows_Server_2025_v1_0_0_L1_MS.audit`
+**Get the `.audit` file:**
+- [Tenable Downloads](https://www.tenable.com/downloads/audit-files) — Tenable account required
+- [CIS WorkBench](https://workbench.cisecurity.org) — CIS membership required
 
-**How to export Nessus CSV:**
+**Export CSV from Nessus:**
 ```
-Nessus → My Scans → [Your compliance scan] → Export → CSV → Download
+Nessus → My Scans → [Compliance scan] → Export → CSV → Download
 ```
 
-**Running L1 and L2 together:**
+**L1 + L2 together:**
 ```bash
-python nessus_audit_to_excel.py \
-  --audit CIS_WS2025_L1.audit CIS_WS2025_L2.audit \
-  --csv   scan.csv
-# Checks from both files are deduplicated and sorted by benchmark number
-# L1 and L2 checks appear in the same category tabs in natural order
+# Both scripts accept multiple --audit files
+python audit_template.py  --audit L1.audit L2.audit
+python report_generator.py --audit L1.audit L2.audit --csv scan.csv
+```
+
+**Folder of CSVs:**
+```bash
+python report_generator.py --audit CIS_L1.audit --csv ./results/
+# All *.csv files in the folder are picked up automatically
+# One tab per file, tab named by host IP
 ```
 
 ---
@@ -557,3 +511,6 @@ python nessus_audit_to_excel.py \
 MIT — free to use, modify, and distribute in personal and commercial projects.
 
 ---
+2. Test `report_generator.py` with a real Nessus compliance CSV — verify matched count
+3. Open the Excel in Microsoft Excel and confirm row heights display all content
+4. Confirm Default Value cells are blank (not `N/A`) when no value_data exists in the audit file
